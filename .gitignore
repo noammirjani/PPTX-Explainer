@@ -1,3 +1,4 @@
 *.pptx
 temp.py
 .idea
+*.json

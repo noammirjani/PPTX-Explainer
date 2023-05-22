@@ -1,42 +1,60 @@
+"""
+            App.py
+    ------------------------
+   The main file of the project,
+   manage the flow of the program.
+"""
 from PptxScanner import PptxScanner
+import asyncio
+from ApiAnalyzer import ApiAnalyzer
 
 
-def ai_text_analyzer(presentation):
-    import openai
-
-    OPENAI_API_KEY = "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"
-
-    openai.api_key = OPENAI_API_KEY
-    system_prompt = "You're an AI text analyzer assisting with presentation summarization.For each slide's content you"\
-                    " receive, generate a concise summary of the text.\n User:'Slide content'\nAI:'Summary explanation'"
-    messages = [{"role": "system", "content": system_prompt}]  # the behavior of the system
-    responses = []
-
+def create_tasks(presentation):
+    """ Create tasks for each slide
+    :param presentation: list of slide content
+    :return: list of tasks
+    """
+    tasks = []
+    api_analyzer = ApiAnalyzer()
     for index, slide_content in enumerate(presentation):
-        # set instructions to the chat as a user message (the slide content)
-        messages.append({"role": "user", "content": slide_content})
-        # sends the request
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-        # get response
-        chat_response = completion.choices[0].message.content
-        # keeping the history of the chat
-        messages.append({"role": "assistant", "content": chat_response})
-        responses.append(chat_response + "\n")
-
-    return responses
+        task = asyncio.create_task(api_analyzer.analyze(slide_content, index))
+        tasks.append(task)
+    return tasks
 
 
-def main():
-    print("-" * 20, "Hello ChatBot", "-" * 20)
+def extract_to_file(responses, prs_path):
+    """ Extract the responses to a file in JSON format """
+    import json
+
+    file_name = prs_path.split('/')[-1].split('.pptx')[0] + ".json"
+    with open(file_name, "w") as outfile:
+        json_responses = {}
+        for response in responses:
+            slide_id = f"slide {response['slide_id']}"
+            analyze = response["analyze"]
+            json_responses[slide_id] = analyze
+
+        json.dump(json_responses, outfile, indent=4)
+
+
+async def main():
+    print("-" * 20, "Presentation Analysis by AI", "-" * 20)
     file_path = input("Enter the path to the presentation file: ")
 
     try:
         prs_scanner = PptxScanner(file_path)
         presentation_content = prs_scanner.scan_presentation()
-        print(ai_text_analyzer(presentation_content))
-    except Exception as e:
-        print(e)
+        # Create tasks for each slide, execute and wait for all tasks to complete
+        tasks = create_tasks(presentation_content)
+        prs_summary = await asyncio.gather(*tasks)
+        extract_to_file(prs_summary, file_path)
+
+    except Exception as err:
+        print("some error accrued: ", err)
+
+    finally:
+        print("-" * 70)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
