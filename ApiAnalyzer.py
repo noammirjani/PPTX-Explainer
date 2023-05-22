@@ -30,7 +30,7 @@ class ApiAnalyzer:
         """ analyze the text by request to the API, return the response
         :return: the response of the API
         """
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.chat)
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.chat, timeout=60)
         return completion.choices[0].message.content
 
     async def analyze(self, slide_content, index):
