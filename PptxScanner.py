@@ -19,8 +19,7 @@ class PptxScanner:
 
     def scan_presentation(self):
         """ Scans the presentation and collect the text from each slide"""
-        for slide in self._presentation.slides:
-            self._prs_content.append(self._get_slide_content(slide))
+        self._prs_content = [self._get_slide_content(slide) for slide in self._presentation.slides]
         return self._prs_content
 
     @staticmethod

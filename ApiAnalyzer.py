@@ -8,7 +8,7 @@
 import backoff
 import openai
 
-API_KEY = "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"
+API_KEY = "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"
 
 
 class ApiAnalyzer:
@@ -54,6 +54,3 @@ class ApiAnalyzer:
         :param content: the content of the message
         """
         self.chat.append({"role": role, "content": content})
-
-# TODO:
-#  1. deside if the class should be singleton
