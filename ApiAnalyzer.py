@@ -1,15 +1,14 @@
 """
 
-                ApiAnalyzer.py
- a class that analyze text by openai API
-
+            ApiAnalyzer.py
+    --------------------------------
+ A class that analyze text by openai API
+ Enter your API key in the API_KEY variable
 """
-
-from openai.error import RateLimitError
+import backoff
 import openai
-import asyncio
 
-API_KEY = "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"
+API_KEY = "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"
 
 
 class ApiAnalyzer:
@@ -22,24 +21,17 @@ class ApiAnalyzer:
         :return: the system prompt
         """
         openai.api_key = self._api_key
-        system_prompt = "You're an AI text analyzer assisting with presentation summarization.For each slide's content" \
-                        "you receive, generate a concise summary of the text.\n User:'Slide content'\nAI:'Explanation'"
+        system_prompt = "You're an AI text analyzer assisting with presentation summarization.For each slide's content"\
+                        "you receive, generate a concise summary and additional explanation of the text.\n"
         return [{"role": "system", "content": system_prompt}]
 
-    @staticmethod
+    @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
     async def _get_explanation(self):
         """ analyze the text by request to the API, return the response
         :return: the response of the API
         """
-        while True:
-            try:
-                completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=self.chat)
-                return completion.choices[0].message.content
-            except RateLimitError:
-                print("Rate limit error, waiting 20 seconds")
-                await asyncio.sleep(20)
-            except Exception as e:
-                raise e
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.chat)
+        return completion.choices[0].message.content
 
     async def analyze(self, slide_content, index):
         """ process the text by request to the API, return the response
@@ -50,7 +42,7 @@ class ApiAnalyzer:
         # set instructions to the chat as a user
         self._add_msg("user", slide_content)
         # request and response
-        chat_response = await self._get_explanation(self)
+        chat_response = await self._get_explanation()
         # keeping the history of the chat
         self._add_msg("assistant", chat_response)
         return {"slide_id": index, "analyze": chat_response + "\n"}
@@ -63,5 +55,4 @@ class ApiAnalyzer:
         self.chat.append({"role": role, "content": content})
 
 # TODO:
-#  1. change the rate time error handling
-#  2. deside if the class should be singleton
+#  1. deside if the class should be singleton
