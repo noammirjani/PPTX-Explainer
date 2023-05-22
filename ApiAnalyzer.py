@@ -39,13 +39,14 @@ class ApiAnalyzer:
          :param index: the index of the slide
          :return: the response of the API
         """
-        # set instructions to the chat as a user
-        self._add_msg("user", slide_content)
-        # request and response
-        chat_response = await self._get_explanation()
-        # keeping the history of the chat
-        self._add_msg("assistant", chat_response)
-        return {"slide_id": index, "analyze": chat_response + "\n"}
+        try:
+            self._add_msg("user", slide_content)                 # set instructions to the chat as a user
+            chat_response = await self._get_explanation()        # request and response
+            self._add_msg("assistant", chat_response)            # keeping the history of the chat
+            return {"slide_id": index, "analyze": chat_response + "\n"}
+        except Exception as e:
+            error_message = f"Error occurred while processing slide {index}: {str(e)}"
+            return {"slide_id": index, "analyze": error_message}
 
     def _add_msg(self, role, content):
         """ add message to the chat
