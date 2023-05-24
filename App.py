@@ -9,7 +9,7 @@ import asyncio
 from ApiAnalyzer import ApiAnalyzer
 
 
-def create_tasks(presentation):
+def create_tasks(presentation: list) -> list:
     """ Create tasks for each slide
     :param presentation: list of slide content
     :return: list of tasks
@@ -22,8 +22,11 @@ def create_tasks(presentation):
     return tasks
 
 
-def extract_to_file(responses, prs_path):
-    """ Extract the responses to a file in JSON format """
+def extract_to_file(responses, prs_path: str):
+    """ Extract the responses to a file in JSON format
+    :param responses: list of responses
+    :param prs_path: the path of the presentation
+     """
     import json
 
     file_name = prs_path.split('/')[-1].split('.pptx')[0] + ".json"
@@ -33,20 +36,20 @@ def extract_to_file(responses, prs_path):
             slide_id = f"slide {response['slide_id']}"
             analyze = response["analyze"]
             json_responses[slide_id] = analyze
-
         json.dump(json_responses, outfile, indent=4)
 
 
 async def run(file_path: str):
-
+    """ Run the program
+    :param file_path: the path of the presentation
+    """
     try:
-        prs_scanner = PptxScanner(file_path)
-        presentation_content = prs_scanner.scan_presentation()
         print("-" * 20, " WELCOME ", "-" * 20)
-        # Create tasks for each slide, execute and wait for all tasks to complete
+        presentation_content = PptxScanner(file_path).scan_presentation()
         tasks = create_tasks(presentation_content)
         prs_summary = await asyncio.gather(*tasks)
         extract_to_file(prs_summary, file_path)
-        print("-" * 22, " END ", "-" * 22)
     except Exception as err:
-        print("some error accrued: ", err)
+        print("some error accrued: ", str(err))
+    finally:
+        print("-" * 22, " END ", "-" * 22)

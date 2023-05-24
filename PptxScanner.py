@@ -1,16 +1,24 @@
+"""
+        PptxScanner.py
+    ------------------------
+    The file that responsible for
+    scanning the presentation.
+"""
 from pptx import Presentation
 
 
 class PptxScanner:
-
-    def __init__(self, path):
+    def __init__(self, path: str):
         self._presentation_path = path
         self._presentation = self.open_presentation(path)
         self._prs_content = []
 
     @staticmethod
-    def open_presentation(path):
-        """ Opens a presentation file and returns a Presentation object"""
+    def open_presentation(path: str) -> Presentation or Exception():
+        """ Opens a presentation file and returns a Presentation object
+        :param path: the path of the presentation
+        :return: Presentation object
+        """
         import os
         if path.endswith(".pptx") and os.path.exists(path):
             return Presentation(path)
@@ -23,8 +31,11 @@ class PptxScanner:
         return self._prs_content
 
     @staticmethod
-    def _get_slide_content(slide):
-        """ Returns the text from a slide"""
+    def _get_slide_content(slide: Presentation) -> str:
+        """ Returns the text from a slide
+        :param slide: a slide object
+        :return: the text from the slide
+        """
         slide_text = []
         for shape in slide.shapes:
             if not shape.has_text_frame:
@@ -35,5 +46,5 @@ class PptxScanner:
         return ''.join(slide_text)
 
     @property
-    def get_path(self):
+    def get_path(self) -> str:
         return self._presentation_path

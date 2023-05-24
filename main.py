@@ -10,8 +10,9 @@
 
    python main.py <path_to_presentation>
 
---> notice that the program includes  API_KEY, which is a (my) private key,
-    you can change it in apiAnalyzer.
+--> notice that the program includes API_KEY,
+    you have to set it to your correct key(in apiAnalyzer.py),
+    without it the program will fail.
 --> The program includes the bonus requirements.
 
     Enjoy!

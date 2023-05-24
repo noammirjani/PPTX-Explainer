@@ -8,13 +8,19 @@
 import backoff
 import openai
 
-API_KEY = "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"
+API_KEY = "YOUR API KEY"
 
 
 class ApiAnalyzer:
     def __init__(self):
+        self.check_api_key()
         self._api_key = API_KEY
         self.chat = self.set_connection_to_api()
+
+    @staticmethod
+    def check_api_key():
+        if API_KEY == "YOUR API KEY":
+            raise Exception("Please enter your API key in the API_KEY variable in ApiAnalyzer.py")
 
     def set_connection_to_api(self):
         """  set the connection to the API
@@ -22,7 +28,8 @@ class ApiAnalyzer:
         """
         openai.api_key = self._api_key
         system_prompt = "You're an AI text analyzer assisting with presentation summarization.For each slide's content"\
-                        "you receive, generate a concise summary and additional explanation of the text.\n"
+                        "you receive, generate a concise summary and additional explanation of the text, in case " \
+                        "there is phrase you are not knowing try to understand from the complete text.\n"
         return [{"role": "system", "content": system_prompt}]
 
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
@@ -30,10 +37,10 @@ class ApiAnalyzer:
         """ analyze the text by request to the API, return the response
         :return: the response of the API
         """
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.chat, timeout=60)
+        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=self.chat, timeout=90)
         return completion.choices[0].message.content
 
-    async def analyze(self, slide_content, index):
+    async def analyze(self, slide_content: str, index: int) -> dict:
         """ process the text by request to the API, return the response
          :param slide_content: the content of the slide
          :param index: the index of the slide
@@ -48,7 +55,7 @@ class ApiAnalyzer:
             error_message = f"Error occurred while processing slide {index}: {str(e)}"
             return {"slide_id": index, "analyze": error_message}
 
-    def _add_msg(self, role, content):
+    def _add_msg(self, role: str, content: str):
         """ add message to the chat
         :param role: the role of the message
         :param content: the content of the message
