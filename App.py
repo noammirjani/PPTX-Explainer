@@ -1,17 +1,8 @@
 """
-            App.py
-    ------------------------
-   The main file of the project,
-   manage the flow of the program.
-
-   TO RUN THE PROGRAM:
-   1. pip install python-pptx
-   2. pip install openai
-   3. pip install backoff
-
---> notice that the program includes  API_KEY, which is a (my) private key,
-    you can change it in apiAnalyzer.
-    The program includes 2 out 3 of the bonus requirements.
+                       App.py
+             ------------------------
+             The logic of the program.
+    Manage the functionality of the other classes.
 """
 from PptxScanner import PptxScanner
 import asyncio
@@ -46,23 +37,16 @@ def extract_to_file(responses, prs_path):
         json.dump(json_responses, outfile, indent=4)
 
 
-async def main():
-    print("-" * 20, " WELCOME ", "-" * 20)
-    file_path = input("Enter the path of the presentation: ")  # validation found in PptxScanner.py
+async def run(file_path: str):
+
     try:
         prs_scanner = PptxScanner(file_path)
         presentation_content = prs_scanner.scan_presentation()
+        print("-" * 20, " WELCOME ", "-" * 20)
         # Create tasks for each slide, execute and wait for all tasks to complete
         tasks = create_tasks(presentation_content)
         prs_summary = await asyncio.gather(*tasks)
         extract_to_file(prs_summary, file_path)
-
+        print("-" * 22, " END ", "-" * 22)
     except Exception as err:
         print("some error accrued: ", err)
-
-    finally:
-        print("-" * 51)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
