@@ -1,12 +1,25 @@
 """
                        App.py
              ------------------------
-             The logic of the program.
-    Manage the functionality of the other classes.
+    The logic of the program - explainer of presentations.
+
+    REQUIREMENTS:
+   1. pip install python-pptx
+   2. pip install openai
+   3. pip install backoff
+
+--> change to your API_KEY in apiAnalyzer.py.
 """
+from collections import deque
+
 from PptxScanner import PptxScanner
-import asyncio
 from ApiAnalyzer import ApiAnalyzer
+import asyncio
+import os
+import time
+
+UPLOADS_DIR = '../uploads'
+OUTPUTS_DIR = '../outputs'
 
 
 def create_tasks(presentation: list) -> list:
@@ -29,7 +42,9 @@ def extract_to_file(responses, prs_path: str):
      """
     import json
 
-    file_name = prs_path.split('/')[-1].split('.pptx')[0] + ".json"
+    # name_without_path = prs_path.split('/')[-1].split('.pptx')[0]
+    prs_uid = prs_path.split('/')[-1].split('_')[2]
+    file_name = OUTPUTS_DIR + '/' + prs_uid + ".json"
     with open(file_name, "w") as outfile:
         json_responses = {}
         for response in responses:
@@ -39,17 +54,37 @@ def extract_to_file(responses, prs_path: str):
         json.dump(json_responses, outfile, indent=4)
 
 
-async def run(file_path: str):
+async def explain_presentation(file_path: str):
     """ Run the program
     :param file_path: the path of the presentation
     """
+    print(f"processing presentation: {file_path}")
+    presentation_content = PptxScanner(file_path).scan_presentation()
+    tasks = create_tasks(presentation_content)
+    prs_summary = await asyncio.gather(*tasks)
+    extract_to_file(prs_summary, file_path)
+    print(f"presentation {file_path} was processed successfully")
+
+
+def main():
     try:
-        print("-" * 20, " WELCOME ", "-" * 20)
-        presentation_content = PptxScanner(file_path).scan_presentation()
-        tasks = create_tasks(presentation_content)
-        prs_summary = await asyncio.gather(*tasks)
-        extract_to_file(prs_summary, file_path)
+        if not os.path.exists(UPLOADS_DIR):
+            raise Exception("Explainer has no access to the uploads directory")
+        if not os.path.exists(OUTPUTS_DIR):
+            os.mkdir(OUTPUTS_DIR)
+        last_check_timestamp = int(time.time())
+
+        print("explainer is running...")
+        while True:
+            for file in os.listdir(UPLOADS_DIR):
+                file_timestamp = int(file.split('_')[1])
+                if file_timestamp > last_check_timestamp:
+                    asyncio.run(explain_presentation(f"{UPLOADS_DIR}/{file}"))
+                    last_check_timestamp = file_timestamp
+
     except Exception as err:
-        print("some error accrued: ", str(err))
-    finally:
-        print("-" * 22, " END ", "-" * 22)
+        print("Some error accrued: ", str(err))
+
+
+if __name__ == "__main__":
+    main()
