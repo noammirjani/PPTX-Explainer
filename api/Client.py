@@ -37,7 +37,7 @@ def status(uid):
     :return: the file status
     """
     response = requests.get(url + 'file-status/' + uid)
-    if response.status_code == 400:
+    if response.status_code == 404:
         raise Exception(f"uid not found: {uid}")
     else:
         response.raise_for_status()
@@ -59,6 +59,9 @@ def main():
             stt_uid = input("Enter the UID to check the status: ").strip()
             stt = status(stt_uid).status
             print(f"Status: {stt}")
+
+            if stt == 'done':
+                print(status(stt_uid).explanation)
 
         except Exception as e:
             print("An error occurred: ", str(e))

@@ -29,6 +29,9 @@ def create_user():
     if file.filename == '':
         return jsonify({'message': 'No file selected for uploading'}), 400
 
+    if not os.path.isfile(file.filename):
+        raise FileNotFoundError('Invalid file')
+
     uid, filename = generate_file_name(file)
     upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(upload_path)
@@ -65,25 +68,29 @@ def get_file_status(uid):
     :return: the file status
     """
     if not os.path.exists(OUTPUT_FOLDER):
-        return jsonify({'message': 'Output directory is not found'}), 400
+        os.mkdir(OUTPUT_FOLDER)
+
+    if not os.path.exists(UPLOAD_FOLDER):
+        return jsonify({'message': 'Upload directory is not found'}), 400
 
     for folder in [OUTPUT_FOLDER, UPLOAD_FOLDER]:
         for file in os.listdir(folder):
-            file_data = file.split('_')
-            if uid == file_data[2].split('.')[0]:
-                # File is found in the folder
-                if folder == OUTPUT_FOLDER:
-                    return jsonify({'status': 'done',
-                                    'filename': file_data[0],
-                                    'timestamp': file_data[1],
-                                    'explanation': content(file)}), 200
-                else:  # file is in the upload folder
-                    return jsonify({'status': 'processing',
-                                    'filename': file_data[0],
-                                    'timestamp': file_data[1],
-                                    'explanation': None}), 200
+            if os.path.isfile(os.path.join(folder, file)):
+                file_data = file.split('_')
+                if uid == file_data[2].split('.')[0]:
+                    # File is found in the folder
+                    if folder == OUTPUT_FOLDER:
+                        return jsonify({'status': 'done',
+                                       'filename': file_data[0],
+                                        'timestamp': file_data[1],
+                                        'explanation': content(file)}), 200
+                    else:  # file is in the upload folder
+                        return jsonify({'status': 'processing',
+                                        'filename': file_data[0],
+                                        'timestamp': file_data[1],
+                                        'explanation': None}), 200
 
-    return jsonify({'status': 'uid not found', 'filename': None, 'timestamp': None, 'explanation': None}), 400
+    return jsonify({'status': 'uid not found', 'filename': None, 'timestamp': None, 'explanation': None}), 404
 
 
 if __name__ == '__main__':
