@@ -10,7 +10,6 @@
 
 --> change to your API_KEY in apiAnalyzer.py.
 """
-from collections import deque
 
 from PptxScanner import PptxScanner
 from ApiAnalyzer import ApiAnalyzer
@@ -35,16 +34,15 @@ def create_tasks(presentation: list) -> list:
     return tasks
 
 
-def extract_to_file(responses, prs_path: str):
+def extract_to_file(responses, file_name: str):
     """ Extract the responses to a file in JSON format
     :param responses: list of responses
-    :param prs_path: the path of the presentation
+    :param file_name: the path of the presentation
      """
     import json
 
-    # name_without_path = prs_path.split('/')[-1].split('.pptx')[0]
-    prs_uid = prs_path.split('/')[-1].split('_')[2]
-    file_name = OUTPUTS_DIR + '/' + prs_uid + ".json"
+    name = file_name.split('/')[-1].rsplit('.pptx', 1)[0]
+    file_name = OUTPUTS_DIR + '/' + name + ".json"
     with open(file_name, "w") as outfile:
         json_responses = {}
         for response in responses:
