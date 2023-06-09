@@ -45,5 +45,13 @@ def status(uid):
     return Status(response.json())
 
 
+def main():
+    while True:
+        file = input("Enter file path: ")
+        uid = upload(file)
+        status(uid)
+        print(status(uid).status)
+
+
 if __name__ == '__main__':
     pass

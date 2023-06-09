@@ -17,8 +17,12 @@ import asyncio
 import os
 import time
 
-UPLOADS_DIR = '../uploads'
-OUTPUTS_DIR = '../outputs'
+# UPLOADS_DIR = '../uploads'
+# OUTPUTS_DIR = '../outputs'
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOADS_DIR = os.path.join(CURRENT_DIR, '..', 'uploads')
+OUTPUTS_DIR = os.path.join(CURRENT_DIR, '..', 'outputs')
 
 
 def create_tasks(presentation: list) -> list:
@@ -67,7 +71,8 @@ async def explain_presentation(file_path: str):
 def main():
     try:
         if not os.path.exists(UPLOADS_DIR):
-            raise Exception("Explainer has no access to the uploads directory")
+            os.mkdir(UPLOADS_DIR)
+            # raise Exception("Explainer has no access to the uploads directory")
         if not os.path.exists(OUTPUTS_DIR):
             os.mkdir(OUTPUTS_DIR)
         last_check_timestamp = int(time.time())

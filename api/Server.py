@@ -7,9 +7,10 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
-
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_FOLDER = os.path.join(parent_dir, 'uploads')
+OUTPUT_FOLDER = os.path.join(parent_dir, 'outputs'
+                             )
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
@@ -36,7 +37,7 @@ def create_user():
     upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(upload_path)
 
-    return jsonify({'message': 'File saved', 'uid': uid}), 200
+    return jsonify({'uid': uid}), 200
 
 
 def generate_file_name(file) -> (str, str):
