@@ -5,6 +5,7 @@ url = "http://127.0.0.1:5000/"
 
 class Status:
     """ The status of a file upload """
+
     def __init__(self, data):
         self.status = data['status']
         self.filename = data['filename']
@@ -44,28 +45,5 @@ def status(uid):
     return Status(response.json())
 
 
-def main():
-    """ Gets a file path from the user and sends it to the server """
-    print(" ---- Welcome to the file uploader! ----")
-
-    while True:
-        try:
-            file_path = input("Enter the file path (or 'quit' to exit): ").strip()
-
-            if file_path == 'quit':
-                break
-
-            upload(file_path)
-            stt_uid = input("Enter the UID to check the status: ").strip()
-            stt = status(stt_uid).status
-            print(f"Status: {stt}")
-
-            if stt == 'done':
-                print(status(stt_uid).explanation)
-
-        except Exception as e:
-            print("An error occurred: ", str(e))
-
-
 if __name__ == '__main__':
-    main()
+    pass
