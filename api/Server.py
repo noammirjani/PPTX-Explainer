@@ -1,14 +1,16 @@
 import os
 import uuid
 import time
+import json
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
-
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_FOLDER = os.path.join(parent_dir, 'uploads')
+OUTPUT_FOLDER = os.path.join(parent_dir, 'outputs'
+                             )
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
@@ -28,11 +30,14 @@ def create_user():
     if file.filename == '':
         return jsonify({'message': 'No file selected for uploading'}), 400
 
+    if not os.path.isfile(file.filename):
+        raise FileNotFoundError('Invalid file')
+
     uid, filename = generate_file_name(file)
     upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(upload_path)
 
-    return jsonify({'message': 'File saved', 'uid': uid}), 200
+    return jsonify({'uid': uid}), 200
 
 
 def generate_file_name(file) -> (str, str):
@@ -48,13 +53,13 @@ def generate_file_name(file) -> (str, str):
     return uid, new_filename
 
 
-def content(file):
+def content(file) -> str:
     """ Get the content of a file
     :param file: the file to read
-    :return: the file content
+    :return: the content of the file
     """
-    with open(file, 'r') as f:
-        return f.read()
+    with open(os.path.join(OUTPUT_FOLDER, file), 'r') as f_name:
+        return json.load(f_name)
 
 
 @app.route('/file-status/<uid>', methods=['GET'])
@@ -64,25 +69,29 @@ def get_file_status(uid):
     :return: the file status
     """
     if not os.path.exists(OUTPUT_FOLDER):
-        return jsonify({'message': 'Output directory is not found'}), 400
+        os.mkdir(OUTPUT_FOLDER)
+
+    if not os.path.exists(UPLOAD_FOLDER):
+        return jsonify({'message': 'Upload directory is not found'}), 400
 
     for folder in [OUTPUT_FOLDER, UPLOAD_FOLDER]:
         for file in os.listdir(folder):
-            file_data = file.split('_')
-            if uid == file_data[2].split('.')[0]:
-                # File is found in the folder
-                if folder == OUTPUT_FOLDER:
-                    return jsonify({'status': 'done',
-                                    'filename': file_data[0],
-                                    'timestamp': file_data[1],
-                                    'explanation': content(file)}), 200
-                else:  # file is in the upload folder
-                    return jsonify({'status': 'processing',
-                                    'filename': file_data[0],
-                                    'timestamp': file_data[1],
-                                    'explanation': None}), 200
+            if os.path.isfile(os.path.join(folder, file)):
+                file_data = file.split('_')
+                if uid == file_data[2].split('.')[0]:
+                    # File is found in the folder
+                    if folder == OUTPUT_FOLDER:
+                        return jsonify({'status': 'done',
+                                       'filename': file_data[0],
+                                        'timestamp': file_data[1],
+                                        'explanation': content(file)}), 200
+                    else:  # file is in the upload folder
+                        return jsonify({'status': 'processing',
+                                        'filename': file_data[0],
+                                        'timestamp': file_data[1],
+                                        'explanation': None}), 200
 
-    return jsonify({'status': 'uid not found', 'filename': None, 'timestamp': None, 'explanation': None}), 400
+    return jsonify({'status': 'uid not found', 'filename': None, 'timestamp': None, 'explanation': None}), 404
 
 
 if __name__ == '__main__':

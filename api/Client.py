@@ -5,6 +5,7 @@ url = "http://127.0.0.1:5000/"
 
 class Status:
     """ The status of a file upload """
+
     def __init__(self, data):
         self.status = data['status']
         self.filename = data['filename']
@@ -37,27 +38,20 @@ def status(uid):
     :return: the file status
     """
     response = requests.get(url + 'file-status/' + uid)
-    response.raise_for_status()
-    Status(response.json())
+    if response.status_code == 404:
+        raise Exception(f"uid not found: {uid}")
+    else:
+        response.raise_for_status()
+    return Status(response.json())
 
 
 def main():
-    """ Gets a file path from the user and sends it to the server """
-    print(" ---- Welcome to the file uploader! ----")
-
     while True:
-        try:
-            file_path = input("Enter the file path (or 'quit' to exit): ").strip()
-
-            if file_path == 'quit':
-                break
-
-            upload(file_path)
-            stt_uid = input("Enter the UID to check the status: ").strip()
-            status(stt_uid)
-        except Exception as e:
-            print("An error occurred: ", str(e))
+        file = input("Enter file path: ")
+        uid = upload(file)
+        status(uid)
+        print(status(uid).status)
 
 
 if __name__ == '__main__':
-    main()
+    pass
