@@ -30,7 +30,7 @@ def status(uid: str):
     """
     response = requests.get(url + 'file-status/' + uid)
     if response.status_code == 404:
-        raise Exception(f"uid not found: {uid}")
+        pass
     else:
         response.raise_for_status()
     stt = Status(**response.json())

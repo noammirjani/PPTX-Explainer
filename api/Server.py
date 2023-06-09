@@ -82,7 +82,7 @@ def get_file_status(uid: str):
                     explanation = get_file_content(file) if folder == OUTPUT_FOLDER else None
                     return jsonify(Status(status, file_data[NAME], file_data[TS], explanation).__dict__), 200
 
-    return jsonify(Status('not found')), 404
+    return jsonify(Status("not found").__dict__), 404
 
 
 if __name__ == '__main__':
