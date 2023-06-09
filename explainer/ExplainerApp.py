@@ -17,8 +17,6 @@ import asyncio
 import os
 import time
 
-# UPLOADS_DIR = '../uploads'
-# OUTPUTS_DIR = '../outputs'
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(CURRENT_DIR, '..', 'uploads')
@@ -60,7 +58,6 @@ async def explain_presentation(file_path: str):
     """ Run the program
     :param file_path: the path of the presentation
     """
-    print(f"processing presentation: {file_path}")
     presentation_content = PptxScanner(file_path).scan_presentation()
     tasks = create_tasks(presentation_content)
     prs_summary = await asyncio.gather(*tasks)
@@ -72,7 +69,6 @@ def main():
     try:
         if not os.path.exists(UPLOADS_DIR):
             os.mkdir(UPLOADS_DIR)
-            # raise Exception("Explainer has no access to the uploads directory")
         if not os.path.exists(OUTPUTS_DIR):
             os.mkdir(OUTPUTS_DIR)
         last_check_timestamp = int(time.time())
@@ -81,7 +77,9 @@ def main():
         while True:
             for file in os.listdir(UPLOADS_DIR):
                 file_timestamp = int(file.split('_')[1])
+                # check if the file was modified after the last check
                 if file_timestamp > last_check_timestamp:
+                    print(f"processing presentation: {file}")
                     asyncio.run(explain_presentation(f"{UPLOADS_DIR}/{file}"))
                     last_check_timestamp = file_timestamp
 

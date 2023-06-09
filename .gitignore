@@ -1,4 +1,4 @@
-*.pptx
+
 temp.py
 .idea
 *.json
@@ -6,3 +6,7 @@ temp.py
 __pycache__/
 *.pyc
 .DS_Store
+.pyTestCache/
+test/.pytest_cache
+uploads
+outputs

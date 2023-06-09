@@ -28,8 +28,12 @@ def test_system():
 
     time.sleep(100)
     status = Client.status(uid)
-    print(status.status)
+    print(status)
     assert status.status == "done"
 
     process1.kill()
     process2.kill()
+
+
+if __name__ == '__main__':
+    test_system()
