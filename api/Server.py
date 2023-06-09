@@ -1,6 +1,7 @@
 import os
 import uuid
 import time
+import json
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
@@ -48,13 +49,13 @@ def generate_file_name(file) -> (str, str):
     return uid, new_filename
 
 
-def content(file):
+def content(file) -> str:
     """ Get the content of a file
     :param file: the file to read
-    :return: the file content
+    :return: the content of the file
     """
-    with open(file, 'r') as f:
-        return f.read()
+    with open(os.path.join(OUTPUT_FOLDER, file), 'r') as f_name:
+        return json.load(f_name)
 
 
 @app.route('/file-status/<uid>', methods=['GET'])
