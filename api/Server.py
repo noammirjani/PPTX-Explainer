@@ -93,7 +93,7 @@ def get_file_status():
 
     uid = get_param_if_exist(request.args, 'uid')
     email = get_param_if_exist(request.args, 'email')
-    filename = get_param_if_exist(request.args, 'name')
+    filename = get_param_if_exist(request.args, 'filename')
 
     try:
         upload = db_service.find_upload(uid, email, filename)

@@ -19,11 +19,6 @@ import asyncio
 import os
 
 
-# CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# UPLOADS_DIR = os.path.join(CURRENT_DIR, '..', 'uploads')
-# OUTPUTS_DIR = os.path.join(CURRENT_DIR, '..', 'outputs')
-
-
 def create_tasks(presentation: list) -> list:
     """ Create tasks for each slide
     :param presentation: list of slide content

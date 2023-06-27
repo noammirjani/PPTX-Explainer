@@ -8,7 +8,10 @@
 import os
 import uuid
 from datetime import datetime
+
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
+
 import db.Models as db_models
 
 engine = db_models.get_engine()
@@ -47,11 +50,13 @@ def find_upload_by_uid(upload_uid):
 
 def find_upload_by_email_and_file(email, file):
     """ Get an upload by its uid
-    :param upload_uid: the upload uid
+    :param: email
+    :param: file
     :return: the upload
     """
     with Session(engine) as session:
-        return session.query(db_models.Upload).filter_by(email=email, file=file).first()
+        return session.query(db_models.Upload).join(db_models.User).filter(db_models.User.email == email, db_models.Upload.filename == file)\
+            .order_by(desc(db_models.Upload.upload_time)).first()
 
 
 def find_upload(uid, email, filename):

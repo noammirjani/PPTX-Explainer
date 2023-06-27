@@ -17,4 +17,4 @@ DB_FOLDER = os.path.join(parent_dir, 'db')
 DB_PATH = os.path.join(DB_FOLDER, 'db.sqlite3.db')
 
 
-API_KEY = "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"
+API_KEY = "key"
