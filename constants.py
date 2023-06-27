@@ -13,3 +13,5 @@ STATUS = "/file-status"
 parent_dir = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(parent_dir, 'uploads')
 OUTPUT_FOLDER = os.path.join(parent_dir, 'outputs')
+DB_FOLDER = os.path.join(parent_dir, 'db')
+DB_PATH = os.path.join(DB_FOLDER, 'db.sqlite3.db')

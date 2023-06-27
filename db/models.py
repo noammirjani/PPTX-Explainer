@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy import ForeignKey, String, create_engine, Integer, DateTime
 from sqlalchemy.orm import Mapped, relationship, declarative_base, mapped_column, validates
 from uuid import UUID
-from constants import UPLOAD_FOLDER, OUTPUT_FOLDER, DB_PATH, DB_FOLDER
+from constants import DB_PATH
 
 Base = declarative_base()
 
@@ -37,9 +37,6 @@ class Upload(Base):
 
 
 def create_app():
-    if not os.path.exists(DB_FOLDER):
-        os.makedirs(DB_FOLDER)
-
     engine = create_engine(f"sqlite:///{DB_PATH}", echo=True, future=True)
     Base.metadata.create_all(engine)
 
