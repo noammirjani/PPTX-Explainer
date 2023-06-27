@@ -1,7 +1,6 @@
 
 import os
 import uuid
-import json
 from flask import Flask, request, jsonify
 from api.Status import Status
 from constants import UPLOAD_FOLDER, OUTPUT_FOLDER
@@ -22,11 +21,6 @@ def generate_file_name(uid, filename):
     file_ext = os.path.splitext(filename)[1]
     new_filename = f"{uid}{file_ext}"
     return os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
-
-
-def get_file_content(file):
-    with open(os.path.join(OUTPUT_FOLDER, file), 'r') as f:
-        return json.load(f)
 
 
 def check_directories():
@@ -51,6 +45,17 @@ def get_param(body, param):
     return body[param]
 
 
+def get_param_if_exist(body, param):
+    """ Get a parameter from the request body
+    :param body: the request body
+    :param param: the parameter to get
+    :return: the parameter value
+    """
+    if param not in body:
+        return None
+    return body[param]
+
+
 def check_file(filename):
     """ Check if the file is valid and exists """
     if filename == '':
@@ -68,7 +73,7 @@ def upload_file():
     try:
         check_directories()
         file = get_param(request.files, 'upload_file').filename
-        email = get_param(request.form, 'email')
+        email = get_param_if_exist(request.form, 'email')
 
         check_file(file)
         upload_uid = uuid.uuid4()
@@ -80,25 +85,23 @@ def upload_file():
         return jsonify({'message': str(e.args[0])}), 400
 
 
-@app.route('/file-status/<uid>', methods=['GET'])
-def get_file_status(uid: str):
-    if not os.path.exists(OUTPUT_FOLDER):
-        os.mkdir(OUTPUT_FOLDER)
+@app.route('/file-status', methods=['GET'])
+def get_file_status():
+    check_directories()
 
-    if not os.path.exists(UPLOAD_FOLDER):
-        return jsonify({'message': 'Upload directory is not found'}), 400
+    uid = get_param_if_exist(request.args, 'uid')
+    email = get_param_if_exist(request.args, 'email')
+    name = get_param_if_exist(request.args, 'name')
 
-    # check if file exists in uploads/output folder, if so return the fit status
-    for folder in [OUTPUT_FOLDER, UPLOAD_FOLDER]:
-        for file in os.listdir(folder):
-            if os.path.isfile(os.path.join(folder, file)):
-                file_data = file.split('_')
-                if uid == file_data["uid"].split('.')[0]:
-                    status = 'done' if folder == OUTPUT_FOLDER else 'processing'
-                    explanation = get_file_content(file) if folder == OUTPUT_FOLDER else None
-                    return jsonify(Status(status, file_data["name"], file_data["ts"], explanation).__dict__), 200
+    if not uid or not email or not name:
+        return jsonify({'message': 'Missing parameters'}), 400
 
-    return jsonify(Status("not found").__dict__), 404
+    upload = None
+    # upload = db.get_upload_status(uid, email, name)
+    if upload:
+        return jsonify(Status(upload).__dict__), 200
+    else:
+        return jsonify(Status("not found").__dict__), 404
 
 
 if __name__ == '__main__':
