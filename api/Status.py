@@ -1,22 +1,32 @@
 """
-                    Status.py
-                    -----------
+    Status.py
+    -----------
     This file contains the Status class which is used to
-        represent the status of a file upload.
+    represent the status of a file upload.
 """
 
 
 class Status:
     """ The status of a file upload """
 
-    def __init__(self, status: str, filename=None, timestamp=None, explanation=None):
-        self.status = status
+    def __init__(self, uid, filename, upload_time, finish_time, status, user_id):
+        self.uid = uid
         self.filename = filename
-        self.timestamp = timestamp
-        self.explanation = explanation
+        self.upload_time = upload_time
+        self.finish_time = finish_time
+        self.status = status
+        self.user_id = user_id
+
+    @classmethod
+    def from_upload(cls, upload):
+        return cls(upload.uid, upload.filename, upload.upload_time, upload.finish_time, upload.status,
+                   upload.user_id)
+
+    @classmethod
+    def from_dict(cls, upload_dict):
+        return cls(upload_dict['uid'], upload_dict['filename'], upload_dict['upload_time'],
+                   upload_dict['finish_time'], upload_dict['status'], upload_dict['user_id'])
 
     def __str__(self):
-        return f"Status: {self.status}\n" \
-               f"Filename: {self.filename}\n" \
-               f"Timestamp: {self.timestamp}\n" \
-               f"Explanation: {self.explanation}\n"
+        return f"uid: {self.uid}\nfilename: {self.filename}\nupload_time: {self.upload_time}\n" \
+               f"finish_time: {self.finish_time}\nstatus: {self.status}\nuser_id: {self.user_id}"

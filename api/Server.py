@@ -1,42 +1,70 @@
 import os
 import uuid
-import time
-import json
+
+import db.Service as db_service
 from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
 from api.Status import Status
+from constants import UPLOAD_FOLDER, OUTPUT_FOLDER
+
 
 app = Flask(__name__)
 
 # Set the upload and output folder
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UPLOAD_FOLDER = os.path.join(parent_dir, 'uploads')
-OUTPUT_FOLDER = os.path.join(parent_dir, 'outputs')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
 
-NAME = 0
-TS = 1  # timestamp
-UID = 2
-
-
-def generate_file_name(file):
+def generate_file_name(uid, filename):
     """ Generate a new file name
-    :param file: the file to generate a name for
-    :return: a tuple containing the uid and the new filename
+    :param uid: the uid of the file
+    :param filename: the file to generate a name for
+    :return: the new file name with the path of the file
     """
-    uid = str(uuid.uuid4())
-    timestamp = str(int(time.time()))
-    filename = secure_filename(file.filename)
     file_ext = os.path.splitext(filename)[1]
-    new_filename = f"{filename}_{timestamp}_{uid}{file_ext}"
-    return uid, new_filename
+    new_filename = f"{uid}{file_ext}"
+    return os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
 
 
-def get_file_content(file):
-    with open(os.path.join(OUTPUT_FOLDER, file), 'r') as f:
-        return json.load(f)
+def check_directories():
+    """ Check if the upload and output directories exist, if not create them
+    :return: None
+    """
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
+
+
+def get_param(body, param):
+    """ Get a parameter from the request body
+    :param body: the request body
+    :param param: the parameter to get
+    :return: the parameter value
+    """
+    if param not in body:
+        raise KeyError(f'No {param} in the request')
+    return body[param]
+
+
+def get_param_if_exist(body, param):
+    """ Get a parameter from the request body
+    :param body: the request body
+    :param param: the parameter to get
+    :return: the parameter value
+    """
+    if param not in body:
+        return None
+    return body[param]
+
+
+def check_file(filename):
+    """ Check if the file is valid and exists """
+    if filename == '':
+        raise FileNotFoundError('No file selected')
+
+    if not os.path.isfile(filename):
+        raise FileNotFoundError('Invalid file')
 
 
 @app.route('/file-upload', methods=['POST'])
@@ -44,45 +72,34 @@ def upload_file():
     """ Create a new user with file upload
     :return: the new user id
     """
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+    try:
+        check_directories()
+        file = get_param(request.files, 'upload_file')
+        email = get_param_if_exist(request.form, 'email')
 
-    if 'upload_file' not in request.files:
-        return jsonify({'message': 'No file part in the request'}), 400
-
-    file = request.files['upload_file']
-    if file.filename == '':
-        return jsonify({'message': 'No file selected for uploading'}), 400
-
-    if not os.path.isfile(file.filename):
-        raise FileNotFoundError('Invalid file')
-
-    uid, filename = generate_file_name(file)
-    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(upload_path)
-
-    return jsonify({'uid': uid}), 200
+        check_file(file.filename)
+        upload_uid = uuid.uuid4()
+        upload_path = generate_file_name(upload_uid, file.filename)
+        db_service.add_upload(upload_uid, email, file.filename)
+        file.save(upload_path)
+        return jsonify({'uid': upload_uid}), 200
+    except Exception as e:
+        return jsonify({'message': str(e.args[0])}), 400
 
 
-@app.route('/file-status/<uid>', methods=['GET'])
-def get_file_status(uid: str):
-    if not os.path.exists(OUTPUT_FOLDER):
-        os.mkdir(OUTPUT_FOLDER)
+@app.route('/file-status', methods=['GET'])
+def get_file_status():
+    check_directories()
 
-    if not os.path.exists(UPLOAD_FOLDER):
-        return jsonify({'message': 'Upload directory is not found'}), 400
+    uid = get_param_if_exist(request.args, 'uid')
+    email = get_param_if_exist(request.args, 'email')
+    filename = get_param_if_exist(request.args, 'filename')
 
-    # check if file exists in uploads/output folder, if so return the fit status
-    for folder in [OUTPUT_FOLDER, UPLOAD_FOLDER]:
-        for file in os.listdir(folder):
-            if os.path.isfile(os.path.join(folder, file)):
-                file_data = file.split('_')
-                if uid == file_data[UID].split('.')[0]:
-                    status = 'done' if folder == OUTPUT_FOLDER else 'processing'
-                    explanation = get_file_content(file) if folder == OUTPUT_FOLDER else None
-                    return jsonify(Status(status, file_data[NAME], file_data[TS], explanation).__dict__), 200
-
-    return jsonify(Status("not found").__dict__), 404
+    try:
+        upload = db_service.find_upload(uid, email, filename)
+        return jsonify(Status.from_upload(upload).__dict__), 200
+    except Exception as e:
+        return jsonify({'message': str(e.args[0])}), 400
 
 
 if __name__ == '__main__':
