@@ -27,9 +27,9 @@ class Upload(Base):
     uid: Mapped[UUID] = mapped_column(unique=True, as_uuid=True, nullable=False)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     upload_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    finish_time: Mapped[DateTime] = mapped_column(DateTime)
+    finish_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_data.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user_data.id"), nullable=True)
     user: Mapped[User] = relationship(back_populates="uploads")
 
     def __str__(self) -> str:
@@ -37,8 +37,12 @@ class Upload(Base):
 
 
 def create_app():
-    engine = create_engine(f"sqlite:///{DB_PATH}", echo=True, future=True)
+    engine = get_engine()
     Base.metadata.create_all(engine)
+
+
+def get_engine():
+    return create_engine(f"sqlite:///{DB_PATH}", echo=True, future=True)
 
 
 if __name__ == '__main__':

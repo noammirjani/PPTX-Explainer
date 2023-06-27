@@ -1,9 +1,11 @@
-
 import os
 import uuid
+
+import db.Service as db_service
 from flask import Flask, request, jsonify
 from api.Status import Status
 from constants import UPLOAD_FOLDER, OUTPUT_FOLDER
+
 
 app = Flask(__name__)
 
@@ -72,13 +74,13 @@ def upload_file():
     """
     try:
         check_directories()
-        file = get_param(request.files, 'upload_file').filename
+        file = get_param(request.files, 'upload_file')
         email = get_param_if_exist(request.form, 'email')
 
-        check_file(file)
+        check_file(file.filename)
         upload_uid = uuid.uuid4()
-        upload_path = generate_file_name(upload_uid, file)
-        # db_service.add_update_user(upload_uid, email, file)
+        upload_path = generate_file_name(upload_uid, file.filename)
+        db_service.add_upload(upload_uid, email, file.filename)
         file.save(upload_path)
         return jsonify({'uid': upload_uid}), 200
     except Exception as e:
@@ -91,17 +93,13 @@ def get_file_status():
 
     uid = get_param_if_exist(request.args, 'uid')
     email = get_param_if_exist(request.args, 'email')
-    name = get_param_if_exist(request.args, 'name')
+    filename = get_param_if_exist(request.args, 'name')
 
-    if not uid or not email or not name:
-        return jsonify({'message': 'Missing parameters'}), 400
-
-    upload = None
-    # upload = db.get_upload_status(uid, email, name)
-    if upload:
-        return jsonify(Status(upload).__dict__), 200
-    else:
-        return jsonify(Status("not found").__dict__), 404
+    try:
+        upload = db_service.find_upload(uid, email, filename)
+        return jsonify(Status.from_upload(upload).__dict__), 200
+    except Exception as e:
+        return jsonify({'message': str(e.args[0])}), 400
 
 
 if __name__ == '__main__':

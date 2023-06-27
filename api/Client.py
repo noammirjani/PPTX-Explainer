@@ -25,12 +25,12 @@ def status(uid: str = None, email: str = None, filename: str = None):
     :param uid: the file id
     :return: the file status
     """
-    if not uid or (not email and not filename):
+    if uid is None and (email is None or filename is None):
         raise ValueError('You must provide a uid or email and filename')
     body = {'uid': uid} if uid else {'email': email, 'filename': filename}
     response = requests.get(URL + STATUS, params=body)
     response.raise_for_status()
-    return Status(response.json())
+    return Status.from_dict(response.json())
 
 
 def main():
@@ -44,8 +44,10 @@ def main():
                 email = input("Enter email: (optional - press enter to skip) )")
                 print(upload(file, email))
             elif c == "s":
-                data = input("Enter search filter - uid or email + file name (with space between): ")
-                print(status(data))
+                uid = input("Enter uid: (optional - press enter to skip) ")
+                email = input("Enter email: (optional - press enter to skip) ")
+                filename = input("Enter filename: (optional - press enter to skip) ")
+                print(status(uid, email, filename).status)
         except Exception as e:
             print(e)
 
