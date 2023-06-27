@@ -10,3 +10,4 @@ __pycache__/
 test/.pytest_cache
 uploads
 outputs
+*.db

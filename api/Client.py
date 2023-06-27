@@ -1,8 +1,7 @@
 import requests
 
 from api.Status import Status
-
-url = "http://127.0.0.1:5000/"
+from constants import URL, UPLOAD, STATUS
 
 
 def upload(file_path: str):
@@ -12,15 +11,11 @@ def upload(file_path: str):
     """
     try:
         with open(file_path, 'rb') as file:
-            response = requests.post(url + 'file-upload', files={'upload_file': file})
-            if response.status_code == 200:
-                return response.json()['uid']
-            else:
-                raise Exception(f"File upload failed. Status code: {response.status_code}")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File not found: {file_path}")
-    except IOError:
-        raise IOError(f"Error occurred while reading the file: {file_path}")
+            response = requests.post(URL + UPLOAD, files={'upload_file': file})
+            response.raise_for_status()
+            return response.json()['uid']
+    except Exception as e:
+        print(e)
 
 
 def status(uid: str):
@@ -28,29 +23,25 @@ def status(uid: str):
     :param uid: the file id
     :return: the file status
     """
-    response = requests.get(url + 'file-status/' + uid)
-    if response.status_code == 404:
-        pass
-    else:
+    try:
+        response = requests.get(URL + STATUS + uid)
         response.raise_for_status()
-    stt = Status(**response.json())
-    return stt
+        return Status(**response.json())
+    except Exception as e:
+        print(e)
 
 
 def main():
     while True:
-        try:
-            c = input("Enter command: ").strip()
-            if c == "exit":
-                break
-            elif c == "u":
-                file = input("Enter file path: ")
-                print(upload(file))
-            elif c == "s":
-                uid = input("Enter uid: ")
-                print(status(uid))
-        except Exception as e:
-            print(e)
+        c = input("Enter command: ").strip()
+        if c == "exit":
+            break
+        elif c == "u":
+            file = input("Enter file path: ")
+            print(upload(file))
+        elif c == "s":
+            uid = input("Enter uid: ")
+            print(status(uid))
 
 
 if __name__ == '__main__':
