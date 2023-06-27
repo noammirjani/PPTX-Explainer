@@ -8,8 +8,9 @@
 import backoff
 import openai
 import os
+from constants import API_KEY
 
-API_KEY = os.getenv("OPENAI_API_KEY")
+# API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class ApiAnalyzer:

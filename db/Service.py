@@ -67,3 +67,23 @@ def find_upload(uid, email, filename):
 
     return upload
 
+
+def find_pending():
+    """ Find all pending uploads
+    :return: a list of pending uploads
+    """
+    with Session(engine) as session:
+        return session.query(db_models.Upload).filter_by(status='pending').all()
+
+
+def update_status(upload_uid, status):
+    """ Update the status of an upload
+    :param upload_uid: the uid of the upload
+    :param status: the new status
+    :return: None
+    """
+    with Session(engine) as session:
+        upload = session.query(db_models.Upload).filter_by(uid=upload_uid).first()
+        if upload is not None:
+            upload.status = status
+            session.commit()

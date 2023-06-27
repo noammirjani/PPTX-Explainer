@@ -13,14 +13,15 @@
 
 from PptxScanner import PptxScanner
 from ApiAnalyzer import ApiAnalyzer
+from constants import OUTPUT_FOLDER, UPLOAD_FOLDER
+import db.Service as db_service
 import asyncio
 import os
-import time
 
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOADS_DIR = os.path.join(CURRENT_DIR, '..', 'uploads')
-OUTPUTS_DIR = os.path.join(CURRENT_DIR, '..', 'outputs')
+# CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# UPLOADS_DIR = os.path.join(CURRENT_DIR, '..', 'uploads')
+# OUTPUTS_DIR = os.path.join(CURRENT_DIR, '..', 'outputs')
 
 
 def create_tasks(presentation: list) -> list:
@@ -36,15 +37,14 @@ def create_tasks(presentation: list) -> list:
     return tasks
 
 
-def extract_to_file(responses, file_name: str):
+def extract_to_file(responses, file_uid: str):
     """ Extract the responses to a file in JSON format
+    :param file_uid:
     :param responses: list of responses
-    :param file_name: the path of the presentation
      """
     import json
 
-    name = file_name.split('/')[-1].rsplit('.pptx', 1)[0]
-    file_name = OUTPUTS_DIR + '/' + name + ".json"
+    file_name = OUTPUT_FOLDER + '/' + file_uid + ".json"
     with open(file_name, "w") as outfile:
         json_responses = {}
         for response in responses:
@@ -54,37 +54,38 @@ def extract_to_file(responses, file_name: str):
         json.dump(json_responses, outfile, indent=4)
 
 
-async def explain_presentation(file_path: str):
+async def explain_presentation(file):
     """ Run the program
-    :param file_path: the path of the presentation
+    :param file:
     """
+    file_path = UPLOAD_FOLDER + '/' + str(file.uid) + '.pptx'
     presentation_content = PptxScanner(file_path).scan_presentation()
     tasks = create_tasks(presentation_content)
     prs_summary = await asyncio.gather(*tasks)
-    extract_to_file(prs_summary, file_path)
+    extract_to_file(prs_summary, str(file.uid))
+    db_service.update_status(file.uid, 'done')
     print(f"presentation {file_path} was processed successfully")
 
 
 def main():
     try:
-        if not os.path.exists(UPLOADS_DIR):
-            os.mkdir(UPLOADS_DIR)
-        if not os.path.exists(OUTPUTS_DIR):
-            os.mkdir(OUTPUTS_DIR)
-        last_check_timestamp = int(time.time())
+        if not os.path.exists(OUTPUT_FOLDER):
+            os.mkdir(OUTPUT_FOLDER)
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.mkdir(UPLOAD_FOLDER)
 
         print("explainer is running...")
         while True:
-            for file in os.listdir(UPLOADS_DIR):
-                file_timestamp = int(file.split('_')[1])
-                # check if the file was modified after the last check
-                if file_timestamp > last_check_timestamp:
-                    print(f"processing presentation: {file}")
-                    asyncio.run(explain_presentation(f"{UPLOADS_DIR}/{file}"))
-                    last_check_timestamp = file_timestamp
+            pending = db_service.find_pending()
+            for file in pending:
+                print(f"processing presentation: {file}")
+                asyncio.run(explain_presentation(file))
 
     except Exception as err:
         print("Some error accrued: ", str(err))
+
+    finally:
+        print("explainer stopped!")
 
 
 if __name__ == "__main__":
