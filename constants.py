@@ -10,6 +10,6 @@ UPLOAD = "/file-upload"
 STATUS = "/file-status"
 
 
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+parent_dir = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(parent_dir, 'uploads')
 OUTPUT_FOLDER = os.path.join(parent_dir, 'outputs')

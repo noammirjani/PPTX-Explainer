@@ -4,13 +4,16 @@ from api.Status import Status
 from constants import URL, UPLOAD, STATUS
 
 
-def upload(file_path: str):
+def upload(file_path: str, email: str):
     """ Uploads a file to the server
+    :param email: the user email
     :param file_path: the file path
     :return: the file id
     """
     with open(file_path, 'rb') as file:
-        response = requests.post(URL + UPLOAD, files={'upload_file': file})
+        file = {'upload_file': file}
+        email = {'email': email}
+        response = requests.post(URL + UPLOAD, files=file, data=email)
         response.raise_for_status()
         return response.json()['uid']
 
@@ -33,7 +36,8 @@ def main():
                 break
             elif c == "u":
                 file = input("Enter file path: ")
-                print(upload(file))
+                email = input("Enter email: (optional - press enter to skip) )")
+                print(upload(file, email))
             elif c == "s":
                 uid = input("Enter uid: ")
                 print(status(uid))

@@ -4,7 +4,7 @@ import uuid
 import json
 from flask import Flask, request, jsonify
 from api.Status import Status
-from constants import UPLOAD_FOLDER, OUTPUT_FOLDER, UPLOAD
+from constants import UPLOAD_FOLDER, OUTPUT_FOLDER
 
 app = Flask(__name__)
 
@@ -60,7 +60,7 @@ def check_file(filename):
         raise FileNotFoundError('Invalid file')
 
 
-@app.route(UPLOAD, methods=['POST'])
+@app.route('/file-upload', methods=['POST'])
 def upload_file():
     """ Create a new user with file upload
     :return: the new user id
