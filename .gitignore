@@ -11,3 +11,4 @@ test/.pytest_cache
 uploads
 outputs
 *.db
+*.pptx
