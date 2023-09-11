@@ -1,139 +1,180 @@
 # The GPT-Explainer Project
 
-## Introduction
+## Going Pro
 
-Learning Software Development is hard. Especially when you can't understand the lecturer's presentations. Wouldn't it be nice to have someone explain them for you?
+As our system grows, we will begin to handle a lot more data...
 
-You are going to implement a Python script that explains Powerpoint presentations using the GPT-3.5 AI model. The script will take as input a presentation file, send the text from each slide to GPT, and save the results together in an output file.
+So far we have used filenames and folders to track our data. This requires disgusting code to play with the filesystem.
+It is also less performant on large scales, and requires manual implementation to perform advanced queries, like finding
+the latest pending upload.
 
-Cool, right?
+It's time to start managing our data like pros. It's time to use a database!
 
 ## Requirements
 
-### Flow of Operation
+### DB
 
-Your script should do the following:
+Add an [SQLite](https://www.sqlitetutorial.net/what-is-sqlite/) database to your system. The physical DB file should sit
+inside a dedicated `db` folder.
 
-1. Take the path of a `.pptx` file.
-2. [Parse the presentation](#parsing-powerpoint-files) to get its data.
-3. Go through every slide separately, and:
-    1. Extract all the text from all text boxes.
-    2. Insert the text into an appropriate prompt for GPT.
-    3. Send the prompt in a request to the [OpenAI API](#integration-with-openai).
-    4. Extract the AI's reply from the response.
-4. Gather the explanations for all the slides in a list.
-5. Save the list in a JSON file.
+The DB will have 2 tables:
 
-### Asynchronous Execution
+- Users - people who upload files for explanation.
+- Uploads - files uploaded by people, with metadata related to their processing.
 
-It takes time for the GPT models to generate responses. If we send the slides one after another, we will have to wait for a very long time. Therefore, we will make asynchronous API calls, so that all the slides are processed at the same time.
+> Important: Make sure your code always accesses the same DB file, no matter how or from where you run the code.
 
-Use Python's `async/await` syntax, together with the builtin `asyncio` package.
+### ORM
 
-> Tip: [Here](https://realpython.com/async-io-python/) is an awesome guide.
+Define an ORM for your DB, using the `SQLAlchemy` package. You should have the following classes:
 
-### Extra Specifications
+**User**:
 
--   Your code should ignore slides without text.
--   Your code should handle weird whitespaces within presentation text.
--   The name of the output file should be the same as the original presentation (but with a `.json` suffix).
+- Mapped Columns:
+    - id: `int` (primary key)
+    - email: `str` - the email address of the user
+- Relationships:
+    - uploads: `List[Upload]` - list of uploads this user made
 
-### Bonus Requirements
+**Upload**:
 
--   Add a timeout to the requests you make to the OpenAI API.
--   Add a convenient CLI interface for your script (use [`argparse`](https://docs.python.org/3/library/argparse.html)).
--   Handle errors raised while processing a slide. Instead of allowing the entire program to crash, save the explanations for the other slides as usual, and put an informative error message for the slide that failed.
+- Mapped Columns:
+    - id: `int` (primary key)
+    - uid: `UUID` - the UID that was generated for the upload
+    - filename: `str` - original uploaded filename
+    - upload_time: `datetime` - when the Web API received the upload
+    - finish_time: `datetime` - when the Explainer finished processing the upload
+    - status: `str` - the current status of the upload
+    - user_id: `int` - foreign key (primary key of the user who uploaded this upload)
+- Relationships:
+    - user: `User` - the user who uploaded this upload
 
-> Tip: [Here](https://platform.openai.com/docs/guides/error-codes/python-library-error-types) is a list of potential errors you might encounter.
+You may define additional columns if you wish (but before you do, ask yourself why you want to).
 
-## Parsing Powerpoint Files
+> Tips:
+> - Here's a useful [quickstart](https://docs.sqlalchemy.org/en/20/orm/quickstart.html) for how to work with SQLAlchemy.
+    It covers all the basics.
+> - SQLAlchemy is very complex, and its documentation is full of advanced and confusing terminology. It is very easy to
+    lose yourself in there. Focus on the code examples, and try to understand the main points.
 
-There are several Python packages that can help you parse `.pptx` files and extract their data.
+**Additional requirements**:
 
-We recommend installing the [`python-pptx`](https://pypi.org/project/python-pptx/) package.
+- Use the new SQLAlchemy syntax for defining columns, using the `mapped_column` function. Also add Python type
+  annotations, using the `Mapped` class.
+- Columns should use [data types](https://docs.sqlalchemy.org/en/20/core/type_basics.html) that work for every DB, even
+  if the DB doesn't support types that exist in Python. Notice there are two categories of column types in SQLAlchemy.
+  Which one should you use?
+- Make sure you add proper [data constraints](https://www.w3schools.com/sql/sql_constraints.asp) for the different
+  columns in the ORM. It is very easy [in SQLAlchemy](https://docs.sqlalchemy.org/en/20/core/constraints.html). For
+  example, a user's `email` should be unique, and also not nullable. What about other columns?
+- If a user is deleted, all their uploads should also be deleted. You can make this happen automatically by defining
+  [cascades](https://docs.sqlalchemy.org/en/20/orm/cascades.html).
+- Previously we could only distinguish two upload statuses: `pending` and `done`. Now add a few more options, so we can
+  have a better sense of what exactly happens to each upload at any moment. What do you think should be useful?
+- Add some additional methods to the `Upload` class. For example, an `upload_path` method could compute the path of the
+  uploaded file based on the metadata in the DB. Can you think of other useful ideas?
+- Add a way to see error messages for failed uploads easily and without searching the logs for hours. What is the
+  easiest way to do that?
+- Make sure uploads receive a `finish_time` under the right circumstances. What are those?
+- Don't put your own values into the primary key columns. Let them automatically increment.
 
-> Tip: The documentation of `python-pptx` is a bit annoying. Concentrate on the parts that are relevant for what you need.
+### Changing the Web API
 
-## Integration with OpenAI
+Modify the Web API component so that it uses the data in the DB.
 
-### Making API Calls
+**Upload**:
 
-To send requests you will need to create an OpenAI account on the [OpenAI website](https://platform.openai.com/overview). There is a "Sign up" button on the top-right.
+The upload endpoint should now:
 
-You will then need to [generate an API key](https://platform.openai.com/account/api-keys), that will be your identifier when using the API.
+- Allow an optional `email` POST parameter.
+- Create an `Upload` object and commit it to the DB.
+- If an email was given:
+    - Fetch that user from the DB, or create a new one if it doesn't exist.
+    - Associate the user with the new upload.
+- If no email was given, simply leave the upload without a user. It will be an anonymous upload.
+- Save files with only the UID in the filename (without the other details).
 
-Also, instead of sending HTTP requests directly, it is much easier to use the official [`openai`](https://pypi.org/project/openai/) Python package to do that for you.
+Questions for thought:
 
-> Tip: Here is a [good guide](https://medium.com/geekculture/a-simple-guide-to-chatgpt-api-with-python-c147985ae28) that covers everything.
+- Why do we want to allow people to upload files without sending their email?
+- How is the user experience different when uploading files associated with an email vs. when uploading anonymously?
+- What does an anonymous upload look like in the DB?
 
-### Choosing an AI Model
+**Status**:
 
-OpenAI is a company that develops [AI models](https://platform.openai.com/docs/models/overview). Each model specializes in something different. For this project, it is best to use the `gpt-3.5-turbo` model (it's also the model used by the ChatGPT website).
+The status endpoint should now:
 
-### Writing a Good Prompt
+- Receive either a UID or a filename and an email.
+- If a UID was given, fetch that upload from the DB.
+- If a filename and an email were given, fetch the **latest** upload with that filename of the user with that email.
+- Add the UID, status and finish time (and maybe other data?) to the response JSON.
 
-You should think carefully how to ask GPT in a way that will give you the best answers. You cannot just throw some text from a presentation and expect it to know what you want. Here are a few good questions to ask yourself when designing a prompt:
+Please note that now all the details should be read from the DB. Only the actual GPT explanation should be read from
+the filesystem.
 
--   How can I clearly explain what I want the AI to do for me?
--   Which information is relevant besides the text of the slide?
--   Is there any additional background that might be useful for the AI to know?
+### Changing the Explainer
 
-> Tip: You can easily test your prompts on [ChatGPT](https://chat.openai.com/).
+The Explainer should now:
 
-### Limits
+- Find pending uploads in the DB instead of scanning directories.
+- Get all metadata about uploads and outputs from the DB.
+- Save output files with only the UID in the filename (+ ".json" of course).
+- Update upload statuses in the DB every time something noteworthy happens.
+- Update upload finish times.
 
-When you create a new OpenAI account you will be able to use the API for free for 3 weeks, or until you use a certain amount of [tokens](https://platform.openai.com/docs/introduction/tokens). After that you must pay. You can check how much you've spent on your [account page](https://platform.openai.com/account/usage).
+### Changing the Python Client
 
-Don't worry! You should have enough free tokens so you don't have to pay during this project. After 3 weeks you can create a new account with a different email (and phone number), and generate a new API key.
+The Python Client should now:
 
-Also, free users have a [rate limit](https://platform.openai.com/account/rate-limits) of 3 requests per minute. If you try to send 20 requests at the same time, don't be surprised if you get errors...
+- Allow uploading files with an optional email attached.
+- Allow checking status by email and filename.
+- Anything else? You can figure it out!
 
-## Grading
+### General Tips
 
-Your work will be graded based on the following criteria:
+- Don't forget to `commit` your changes to the DB.
+- Don't forget to close every [session](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) you create.
+- Don't forget to `add` changes to the session before you `commit`.
+- It is very convenient to create a module that automatically connects to the DB when you `import` it, and creates
+  an [engine](https://docs.sqlalchemy.org/en/20/core/engines.html) that you can `import` and use to execute queries.
+- It is very convenient to write a small DB initialization script, that creates the DB and the tables. You will
+  probably (mess up and) want to create a new clean DB several times during development.
+- It is very convenient to look at the data in your DB with your own eyes to check if everything's right. If you're
+  using PyCharm Professional you can use the Database Tool Window (notice if it says you need to download a driver). If
+  you're using VSCode you can install an SQLite extensions (there are a few). You can also download third-party software
+  like [SQLite Browser](https://sqlitebrowser.org/). All options allow you to open a DB file and execute SQL queries.
 
--   The code passes all mandatory [requirements](#technical-requirements).
--   Code quality
-    -   Readable code
-    -   Indicative names
-    -   Spacing and indentation
-    -   Avioding duplicate code
-    -   Comments and documentation
-    -   Proper division of logic into small functions
-    -   Proper division of modules into separate files
--   Proper usage of Git
-    -   Small and standalone commits
-    -   Descriptive commit messages
-    -   Working on different features in separate branches
-    -   Creating a proper pull request
-    -   Not uploading junk files that are not part of the code (use `.gitignore`)
--   [Bonus requirements](#bonus-requirements) you may have implemented
+And also: when refactoring code, delete everything you don't use anymore! Clean code == clean soul.
 
-> Tip: Here are some [guidelines](https://gist.github.com/luismts/495d982e8c5b1a0ced4a57cf3d93cf60) on good commit practices.
+## Bonus Requirements
 
-## Some Extra Tips
+### Properties
 
--   Before you write code:
-    -   Make sure you have a vision for the flow and architecture of your project.
-    -   Play a bit with the different packages. Not too much. Just to feel comfortable.
-    -   Ask yourself the following:
-        -   Which logical parts does my project have?
-        -   Which files should I have?
-        -   Which functions should I write?
-        -   Which branches should I open?
-        -   Which parts of code will depend on others? Which won't?
-        -   Which features are central? Which are less important?
--   Good questions to ask while coding:
-    -   Do these changes really belong in the same commit?
-    -   Can I give a name to this piece of logic and make a separate function?
-    -   Do I really have to fix this issue right now?
-    -   Is this really worth the time I'm investing?
-    -   If I want to add extra features later, will it be easy?
-    -   If someone else looks at this code, will they hate me?
-    -   Will I understand this commit message in a week from now?
--   Before you submit:
-    -   Code-review yourself! It's a good practice.
+Make the extra methods you added to the `Upload` class look and behave like regular properties.
+Read about the `@property` decorator.
 
-## Good Luck!
+### Email Validation
 
-![Hunger Games](https://img.memegenerator.net/instances/47706789.jpg)
+You don't just trust people who give you string and claim they are emails. What if it's not? Or maybe the format is
+right, but the email doesn't really exist. Or it's a temporary disposable email...
+
+Make the Upload endpoint of the Web API validate the user emails it receives.
+
+You might want to use [this](https://pypi.org/project/email-validate/) package. If you don't like it, there are others.
+Search [PyPI](https://pypi.org/).
+
+### Upload Summary
+
+Add a new `history` endpoint to the Web API. It should:
+
+- Receive a GET request with an email as a URL parameter.
+- Return a JSON summary of past uploads for that user.
+
+The returned JSON should be a list, where every element is an object with brief metadata about an upload. The metadata
+for each upload should contain the UID, filename, upload time, status and other things you find relevant.
+
+Needless to say, you should handle bad inputs...
+
+And of course, add a method to the Python Client to access this API endpoint.
+
+![Good Luck](https://i.imgflip.com/1pz4wb.jpg)
