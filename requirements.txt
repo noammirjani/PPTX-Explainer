@@ -1,0 +1,5 @@
+python-pptx==0.6.21
+openai==0.27.7
+SQLAlchemy==2.0.17
+requests==2.31.0
+flask==2.3.2
