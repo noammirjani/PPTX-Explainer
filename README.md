@@ -71,8 +71,7 @@ To run the project, execute the following commands:
 - Run the client: `python api/Client.py`
 
 ## Contributions
-
-Contributions, issues, and feature requests are welcome! Please follow the guidelines in `CONTRIBUTING.md`.
+Contributions, issues, and feature requests are welcome!
 
 
 ## Project Origin
